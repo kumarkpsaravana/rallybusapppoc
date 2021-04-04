@@ -37,6 +37,10 @@
         </Restriction>
       </ClaimType>
 
+        <ClaimType Id="extension_emailVerified">
+            <DataType>boolean</DataType>
+         </ClaimType>
+
       <ClaimType Id="tenantId">
         <DisplayName>User's Object's Tenant ID</DisplayName>
         <DataType>string</DataType>
@@ -649,6 +653,7 @@
             <OutputClaim ClaimTypeReferenceId="otherMails" />
             <OutputClaim ClaimTypeReferenceId="givenName" />
             <OutputClaim ClaimTypeReferenceId="surname" />
+            <OutputClaim ClaimTypeReferenceId="extension_emailVerified" />
           </OutputClaims>
           <IncludeTechnicalProfile ReferenceId="AAD-Common" />
         </TechnicalProfile>

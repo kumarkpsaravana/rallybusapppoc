@@ -1,23 +1,16 @@
-﻿using Microsoft.Identity.Client;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+﻿using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Owin;
 using Microsoft.Owin.Host.SystemWeb;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.Notifications;
 using Microsoft.Owin.Security.OpenIdConnect;
 using Owin;
+using RBPoc.Utils;
 using System;
 using System.Net;
-using System.Net.Http;
-using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Web.Http;
-using Microsoft.Owin;
-using RBPoc.Utils;
-using System.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 
 [assembly: OwinStartup(typeof(RBPoc.Startup))]
 
@@ -182,80 +175,62 @@ namespace RBPoc
          */
         private async Task OnAuthorizationCodeReceived(AuthorizationCodeReceivedNotification notification)
         {
-            try
-            {
-                IConfidentialClientApplication confidentialClient = MsalAppBuilder.BuildConfidentialClientApplication(new ClaimsPrincipal(notification.AuthenticationTicket.Identity));
 
-                // Upon successful sign in, get & cache a token using MSAL
-                //AuthenticationResult result = await confidentialClient.AcquireTokenByAuthorizationCode(Globals.Scopes, notification.Code).ExecuteAsync();
-                //string token = result.AccessToken;
-
-                using (var client = new HttpClient())
-                {
-
-                    string tokenURL = "https://login.microsoftonline.com/rallycommunitas.onmicrosoft.com/oauth2/v2.0/token";
-
-                    var requestContent = new FormUrlEncodedContent(new[]
-                    {
-                        new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                        new KeyValuePair<string, string>("client_id", Globals.RoleClientId),
-                        new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default"),
-                        new KeyValuePair<string, string>("client_secret", Globals.RoleClientSecret)
-                    });
+            //AD B2C token will be received here after authentication. The token will have role claims which will be added in the AuthenticationTicket.Identity automatically.
 
 
-                    var response1 = await client.PostAsync(tokenURL, requestContent);
-                    var responseContent = await response1.Content.ReadAsStringAsync();
+            //try
+            //{
+            //    IConfidentialClientApplication confidentialClient = MsalAppBuilder.BuildConfidentialClientApplication(new ClaimsPrincipal(notification.AuthenticationTicket.Identity));
 
-                    var tokenObj = JObject.Parse(responseContent);
-                    JToken accessToke = tokenObj.GetValue("access_token");
-                    string accessToken = tokenObj.GetValue("access_token").Value<string>();
+            //    // Upon successful sign in, get & cache a token using MSAL
+            //    //AuthenticationResult result = await confidentialClient.AcquireTokenByAuthorizationCode(Globals.Scopes, notification.Code).ExecuteAsync();
+            //    //string token = result.AccessToken;
 
+            //    using (var client = new HttpClient())
+            //    {
 
+            //        string tokenURL = "https://login.microsoftonline.com/rallycommunitas.onmicrosoft.com/oauth2/v2.0/token";
 
-
-
-
-                    string requestUrl = $"https://graph.microsoft.com/v1.0/users/{notification.JwtSecurityToken.Subject}/memberOf?$select=displayName";
-
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-                    HttpResponseMessage response = await client.SendAsync(request);
-                    var responseString = await response.Content.ReadAsStringAsync();
-
-                    var json = JObject.Parse(responseString);
-
-                    foreach (var group in json["value"])
-                        notification.AuthenticationTicket.Identity.AddClaim(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, group["displayName"].ToString(), System.Security.Claims.ClaimValueTypes.String, "Graph"));
-
-                    //TODO: Handle paging. 
-                    // https://developer.microsoft.com/en-us/graph/docs/concepts/paging
-                    // If the user is a member of more than 100 groups, 
-                    // you'll need to retrieve the next page of results.
-                }
+            //        var requestContent = new FormUrlEncodedContent(new[]
+            //        {
+            //            new KeyValuePair<string, string>("grant_type", "client_credentials"),
+            //            new KeyValuePair<string, string>("client_id", Globals.RoleClientId),
+            //            new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default"),
+            //            new KeyValuePair<string, string>("client_secret", Globals.RoleClientSecret)
+            //        });
 
 
-                //TODO - Approach 1
-                // Get the Roles information from the JWT token. We can create a cutom attribute in the AD B2C directory and store the role information for the user. During the user sign-in we can include the custom attribute in the JWT token.
+            //        var response1 = await client.PostAsync(tokenURL, requestContent);
+            //        var responseContent = await response1.Content.ReadAsStringAsync();
 
-                //TODO - Approach 2
-                //Get the user id from the JWT token, send the userid to AD B2C directory using Graph API to get the groups associated with the user. In this approach we need to create groups in the AD B2C Directory and assign groups to the user. here we can consider the group as Role.
+            //        var tokenObj = JObject.Parse(responseContent);
+            //        JToken accessToke = tokenObj.GetValue("access_token");
+            //        string accessToken = tokenObj.GetValue("access_token").Value<string>();
 
-                //TODO: Using any one of the approach, we can get the role information. Then, we can include the role claim details in the AuthenticationTicket.Identity
+            //        string requestUrl = $"https://graph.microsoft.com/v1.0/users/{notification.JwtSecurityToken.Subject}/memberOf?$select=displayName";
 
-                //Example to add a role claim in the AuthenticationTicket.Identity
-                //notification.AuthenticationTicket.Identity.AddClaim(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Administrator", System.Security.Claims.ClaimValueTypes.String, "Graph"));
+            //        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            //        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            }
-            catch (Exception ex)
-            {
-                throw new HttpResponseException(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    ReasonPhrase = $"Unable to get authorization code {ex.Message}."
-                });
-            }
+            //        HttpResponseMessage response = await client.SendAsync(request);
+            //        var responseString = await response.Content.ReadAsStringAsync();
+
+            //        var json = JObject.Parse(responseString);
+
+            //        foreach (var group in json["value"])
+            //            notification.AuthenticationTicket.Identity.AddClaim(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, group["displayName"].ToString(), System.Security.Claims.ClaimValueTypes.String, "Graph"));
+            //    }
+
+            //}
+            //catch (Exception ex)
+            //{
+            //    throw new HttpResponseException(new HttpResponseMessage
+            //    {
+            //        StatusCode = HttpStatusCode.BadRequest,
+            //        ReasonPhrase = $"Unable to get authorization code {ex.Message}."
+            //    });
+            //}
         }
     }
 }

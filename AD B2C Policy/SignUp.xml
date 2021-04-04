@@ -20,6 +20,8 @@
       <Protocol Name="OpenIdConnect" />
       <OutputClaims>
         <OutputClaim ClaimTypeReferenceId="displayName" />
+        <OutputClaim ClaimTypeReferenceId="extension_emailVerified" />
+        <OutputClaim ClaimTypeReferenceId="roles" />
         <OutputClaim ClaimTypeReferenceId="mobile" />
         <OutputClaim ClaimTypeReferenceId="email" />
         <OutputClaim ClaimTypeReferenceId="objectId" PartnerClaimType="sub"/>

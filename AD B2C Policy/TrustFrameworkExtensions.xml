@@ -6,8 +6,14 @@
    </BasePolicy>
    <BuildingBlocks>
       <ClaimsSchema>
+         <ClaimType Id="roles">
+         <DataType>stringCollection</DataType>
+         </ClaimType>
          <ClaimType Id="socialIdpUserId">
             <DataType>string</DataType>
+         </ClaimType>
+         <ClaimType Id="extension_emailVerified">
+            <DataType>boolean</DataType>
          </ClaimType>
          <ClaimType Id="readOnlyEmail">
             <DataType>string</DataType>
@@ -31,6 +37,28 @@
             </InputParameters>
             <OutputClaims>
                <OutputClaim ClaimTypeReferenceId="readOnlyEmail" TransformationClaimType="outputClaim" />
+            </OutputClaims>
+         </ClaimsTransformation>
+         <ClaimsTransformation Id="CopyReadOnlymailAddressToVerify" TransformationMethod="FormatStringClaim">
+            <InputClaims>
+               <InputClaim ClaimTypeReferenceId="email" TransformationClaimType="inputClaim" />
+            </InputClaims>
+            <InputParameters>
+               <InputParameter Id="stringFormat" DataType="string" Value="{0}" />
+            </InputParameters>
+            <OutputClaims>
+               <OutputClaim ClaimTypeReferenceId="readOnlyEmail" TransformationClaimType="outputClaim" />
+            </OutputClaims>
+         </ClaimsTransformation>
+          <ClaimsTransformation Id="CopymailAddressToVerify" TransformationMethod="FormatStringClaim">
+            <InputClaims>
+               <InputClaim ClaimTypeReferenceId="signInName" TransformationClaimType="inputClaim" />
+            </InputClaims>
+            <InputParameters>
+               <InputParameter Id="stringFormat" DataType="string" Value="{0}" />
+            </InputParameters>
+            <OutputClaims>
+               <OutputClaim ClaimTypeReferenceId="email" TransformationClaimType="outputClaim" />
             </OutputClaims>
          </ClaimsTransformation>
       </ClaimsTransformations>
@@ -436,6 +464,29 @@
             </LocalizedStrings>
          </LocalizedResources>
       </Localization>
+      <DisplayControls>
+         <DisplayControl Id="emailVerificationControl" UserInterfaceControlType="VerificationControl">
+         <InputClaims>
+            <InputClaim ClaimTypeReferenceId="readOnlyEmail" />
+         </InputClaims>
+         <DisplayClaims>
+            <DisplayClaim ClaimTypeReferenceId="readOnlyEmail" />
+            <DisplayClaim ClaimTypeReferenceId="verificationCode" ControlClaimType="VerificationCode" />
+         </DisplayClaims>
+         <Actions>
+            <Action Id="SendCode">
+               <ValidationClaimsExchange>
+               <ValidationClaimsExchangeTechnicalProfile TechnicalProfileReferenceId="AadSspr-SendCode" />
+               </ValidationClaimsExchange>
+            </Action>
+            <Action Id="VerifyCode">
+               <ValidationClaimsExchange>
+               <ValidationClaimsExchangeTechnicalProfile TechnicalProfileReferenceId="AadSspr-VerifyCode" />
+               </ValidationClaimsExchange>
+            </Action>
+         </Actions>
+         </DisplayControl>
+      </DisplayControls>
    </BuildingBlocks>
    <ClaimsProviders>
       <ClaimsProvider>
@@ -521,6 +572,26 @@
                </ValidationTechnicalProfiles>
                <UseTechnicalProfileForSessionManagement ReferenceId="SM-AAD" />
             </TechnicalProfile>
+
+            <TechnicalProfile Id="REST-GetRoles">
+               <DisplayName>Get Roles</DisplayName>
+               <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+               <Metadata>
+                  <Item Key="ServiceUrl">{Settings:GetRolesAPIURL}</Item>
+                  <Item Key="AuthenticationType">None</Item>
+                  <Item Key="SendClaimsIn">QueryString</Item>
+                  <Item Key="IncludeClaimResolvingInClaimsHandling">true</Item>
+                  <Item Key="AllowInsecureAuthInProduction">true</Item>                  
+               </Metadata>
+               <InputClaims>
+                  <InputClaim ClaimTypeReferenceId="objectId" />
+               </InputClaims>
+               <OutputClaims>
+                  <OutputClaim ClaimTypeReferenceId="roles" />
+               </OutputClaims>
+               <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
+            </TechnicalProfile>
+
             <TechnicalProfile Id="LocalAccountSignUpWithLogonEmailProfile">
                <DisplayName>Email signup</DisplayName>
                <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
@@ -577,6 +648,7 @@
                   <OutputClaim ClaimTypeReferenceId="displayName" />
                   <OutputClaim ClaimTypeReferenceId="otherMails" />
                   <OutputClaim ClaimTypeReferenceId="mobile" />
+                  <OutputClaim ClaimTypeReferenceId="extension_emailVerified" />
                </OutputClaims>
                <IncludeTechnicalProfile ReferenceId="AAD-Common" />
             </TechnicalProfile>
@@ -598,6 +670,7 @@
                   <PersistedClaim ClaimTypeReferenceId="newPassword" PartnerClaimType="password" />
                   <PersistedClaim ClaimTypeReferenceId="displayName" DefaultValue="unknown" />
                   <PersistedClaim ClaimTypeReferenceId="passwordPolicies" DefaultValue="DisablePasswordExpiration" />
+                  <PersistedClaim ClaimTypeReferenceId="extension_emailVerified" DefaultValue="false" />
                   <!-- Optional claims. -->
                   <PersistedClaim ClaimTypeReferenceId="otherMails" />
                   <PersistedClaim ClaimTypeReferenceId="mobile" />
@@ -704,6 +777,7 @@
                  in AAD-UserWriteUsingAlternativeSecurityId. -->
                   <OutputClaim ClaimTypeReferenceId="displayName" />
                   <OutputClaim ClaimTypeReferenceId="mobile" />
+                  <OutputClaim ClaimTypeReferenceId="extension_emailVerified" />
                </OutputClaims>
                <ValidationTechnicalProfiles>
                   <ValidationTechnicalProfile ReferenceId="AAD-UserWriteUsingAlternativeSecurityId-Ext" />
@@ -729,6 +803,7 @@
                   <PersistedClaim ClaimTypeReferenceId="userPrincipalName" />
                   <PersistedClaim ClaimTypeReferenceId="mailNickName" DefaultValue="unknown" />
                   <PersistedClaim ClaimTypeReferenceId="displayName" DefaultValue="unknown" />
+                  <PersistedClaim ClaimTypeReferenceId="extension_emailVerified" DefaultValue="false" />
                   <!-- Optional claims -->
                   <PersistedClaim ClaimTypeReferenceId="otherMails" />
                   <PersistedClaim ClaimTypeReferenceId="mobile" />
@@ -740,6 +815,7 @@
                  OutputClaims, and if this is absent, Self-Asserted provider will prompt the user for otherMails. -->
                   <OutputClaim ClaimTypeReferenceId="otherMails" />
                   <OutputClaim ClaimTypeReferenceId="mobile" />
+                  <OutputClaim ClaimTypeReferenceId="extension_emailVerified" />
                </OutputClaims>
                <IncludeTechnicalProfile ReferenceId="AAD-Common" />
                <UseTechnicalProfileForSessionManagement ReferenceId="SM-AAD" />
@@ -820,6 +896,54 @@
                </OutputClaims>
                <IncludeTechnicalProfile ReferenceId="AAD-Common" />
             </TechnicalProfile>
+
+             <TechnicalProfile Id="AAD-Common">
+               <Metadata>
+                  <!--Insert b2c-extensions-app application ID here, for example: 11111111-1111-1111-1111-111111111111-->
+                  <Item Key="ClientId">{Settings:B2CExtensionAppId}</Item>
+                  <!--Insert b2c-extensions-app application ObjectId here, for example: 22222222-2222-2222-2222-222222222222-->
+                  <Item Key="ApplicationObjectId">{Settings:B2CExtensionAppObjectId}</Item>
+               </Metadata>
+            </TechnicalProfile>
+
+            <TechnicalProfile Id="AAD-UserVerifyEmailUsingObjectId">
+               <Metadata>
+               <Item Key="Operation">Write</Item>
+               </Metadata>
+               <InputClaims>
+               <InputClaim ClaimTypeReferenceId="objectId" Required="true" />
+               </InputClaims>
+               <PersistedClaims>
+               <PersistedClaim ClaimTypeReferenceId="objectId" />
+               <PersistedClaim ClaimTypeReferenceId="extension_emailVerified" AlwaysUseDefaultValue="true" DefaultValue="true" />            
+               </PersistedClaims>
+               <IncludeTechnicalProfile ReferenceId="AAD-Common" />
+            </TechnicalProfile>
+
+            <TechnicalProfile Id="SelfAsserted-VerifyEmail">
+               <DisplayName>Verify Email</DisplayName>
+               <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+               <Metadata>
+                  <Item Key="ContentDefinitionReferenceId">api.selfasserted</Item>
+               </Metadata>
+               <IncludeInSso>false</IncludeInSso>
+               <InputClaimsTransformations>
+                  <InputClaimsTransformation ReferenceId="CopyReadOnlymailAddressToVerify" />
+               </InputClaimsTransformations>
+               <InputClaims>
+                  <InputClaim ClaimTypeReferenceId="objectId" />
+                  <InputClaim ClaimTypeReferenceId="email" />
+                  <InputClaim ClaimTypeReferenceId="readOnlyEmail" />
+               </InputClaims>
+               <DisplayClaims>
+                  <DisplayClaim DisplayControlReferenceId="emailVerificationControl" />
+               </DisplayClaims>
+               <OutputClaims>
+                  <OutputClaim ClaimTypeReferenceId="objectId" />
+                  <OutputClaim ClaimTypeReferenceId="signInName" />
+               </OutputClaims>
+            </TechnicalProfile>
+
          </TechnicalProfiles>
       </ClaimsProvider>
    </ClaimsProviders>
@@ -907,7 +1031,12 @@
                   <ClaimsExchange Id="AADUserWrite" TechnicalProfileReferenceId="AAD-UserWriteUsingAlternativeSecurityId-Ext" />
                </ClaimsExchanges>
             </OrchestrationStep>
-            <OrchestrationStep Order="7" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+             <OrchestrationStep Order="7" Type="ClaimsExchange">
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="REST-GetRoles" TechnicalProfileReferenceId="REST-GetRoles" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+            <OrchestrationStep Order="8" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
          </OrchestrationSteps>
          <ClientDefinition ReferenceId="DefaultWeb" />
       </UserJourney>
@@ -992,7 +1121,14 @@
                   <ClaimsExchange Id="AADUserWrite" TechnicalProfileReferenceId="AAD-UserWriteUsingAlternativeSecurityId-Ext" />
                </ClaimsExchanges>
             </OrchestrationStep>
-            <OrchestrationStep Order="7" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+
+             <OrchestrationStep Order="7" Type="ClaimsExchange">
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="REST-GetRoles" TechnicalProfileReferenceId="REST-GetRoles" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+
+            <OrchestrationStep Order="8" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
          </OrchestrationSteps>
          <ClientDefinition ReferenceId="DefaultWeb" />
       </UserJourney>
@@ -1044,7 +1180,12 @@
                   <ClaimsExchange Id="B2CUserProfileUpdateExchange" TechnicalProfileReferenceId="SelfAsserted-ProfileUpdate-Ext" />
                </ClaimsExchanges>
             </OrchestrationStep>
-            <OrchestrationStep Order="6" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+             <OrchestrationStep Order="6" Type="ClaimsExchange">
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="REST-GetRoles" TechnicalProfileReferenceId="REST-GetRoles" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+            <OrchestrationStep Order="7" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
          </OrchestrationSteps>
          <ClientDefinition ReferenceId="DefaultWeb" />
       </UserJourney>
@@ -1064,5 +1205,68 @@
          </OrchestrationSteps>
          <ClientDefinition ReferenceId="DefaultWeb" />
       </UserJourney>
+
+      <UserJourney Id="VerifyEmail-Ext">
+      <OrchestrationSteps>
+        <OrchestrationStep Order="1" Type="ClaimsProviderSelection" ContentDefinitionReferenceId="api.idpselections">
+               <ClaimsProviderSelections>
+                  <ClaimsProviderSelection TargetClaimsExchangeId="MicrosoftAccountExchange" />
+                  <ClaimsProviderSelection TargetClaimsExchangeId="FacebookExchange" />
+                  <ClaimsProviderSelection TargetClaimsExchangeId="GoogleExchange" />
+                  <ClaimsProviderSelection TargetClaimsExchangeId="LocalAccountSigninEmailExchange" />
+               </ClaimsProviderSelections>
+            </OrchestrationStep>
+            <OrchestrationStep Order="2" Type="ClaimsExchange">
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="MicrosoftAccountExchange" TechnicalProfileReferenceId="MicrosoftAccount" />
+                  <ClaimsExchange Id="FacebookExchange" TechnicalProfileReferenceId="Facebook-OAUTH" />
+                  <ClaimsExchange Id="GoogleExchange" TechnicalProfileReferenceId="Google-OAuth2" />
+                  <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+            <OrchestrationStep Order="3" Type="ClaimsExchange">
+               <Preconditions>
+                  <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+                     <Value>authenticationSource</Value>
+                     <Value>localAccountAuthentication</Value>
+                     <Action>SkipThisOrchestrationStep</Action>
+                  </Precondition>
+               </Preconditions>
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="AADUserRead" TechnicalProfileReferenceId="AAD-UserReadUsingAlternativeSecurityId-Ext" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+            <OrchestrationStep Order="4" Type="ClaimsExchange">
+               <Preconditions>
+                  <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+                     <Value>authenticationSource</Value>
+                     <Value>socialIdpAuthentication</Value>
+                     <Action>SkipThisOrchestrationStep</Action>
+                  </Precondition>
+               </Preconditions>
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="AADUserReadWithObjectId" TechnicalProfileReferenceId="AAD-UserReadUsingObjectId" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+        <OrchestrationStep Order="5" Type="ClaimsExchange">
+          <ClaimsExchanges>
+            <ClaimsExchange Id="SelfAsserted-VerifyEmail-CE" TechnicalProfileReferenceId="SelfAsserted-VerifyEmail" />
+          </ClaimsExchanges>
+        </OrchestrationStep>       
+        <OrchestrationStep Order="6" Type="ClaimsExchange">          
+          <ClaimsExchanges>
+            <ClaimsExchange Id="AADUserVerifyEmailUsingObjectId" TechnicalProfileReferenceId="AAD-UserVerifyEmailUsingObjectId" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+       
+          <OrchestrationStep Order="7" Type="ClaimsExchange">
+               <ClaimsExchanges>
+                  <ClaimsExchange Id="REST-GetRoles" TechnicalProfileReferenceId="REST-GetRoles" />
+               </ClaimsExchanges>
+            </OrchestrationStep>
+        <OrchestrationStep Order="8" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+      </OrchestrationSteps>
+      <ClientDefinition ReferenceId="DefaultWeb" />
+    </UserJourney>
    </UserJourneys>
 </TrustFrameworkPolicy>

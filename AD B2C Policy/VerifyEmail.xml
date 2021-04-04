@@ -5,8 +5,8 @@
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06"
   PolicySchemaVersion="0.3.0.0"
   TenantId="{Settings:Tenant}"
-  PolicyId="B2C_1A_ProfileEdit"
-  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_ProfileEdit">
+  PolicyId="B2C_1A_VerifyEmail"
+  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_VerifyEmail">
 
   <BasePolicy>
     <TenantId>{Settings:Tenant}</TenantId>
@@ -14,7 +14,7 @@
   </BasePolicy>
 
   <RelyingParty>
-    <DefaultUserJourney ReferenceId="ProfileEdit" />
+    <DefaultUserJourney ReferenceId="VerifyEmail-Ext" />
     <TechnicalProfile Id="PolicyProfile">
       <DisplayName>PolicyProfile</DisplayName>
       <Protocol Name="OpenIdConnect" />
